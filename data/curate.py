@@ -8,37 +8,61 @@ import os
 import pandas as pd
 import matplotlib.pyplot as plt
 
+LOC = 'data/data_raw/'
 
-def data():
-    loc = 'data/data_raw/'
-
-    hf_files = [
+HF_FILES = [
         '22-7-12.csv',
         '23-1-7.csv',
         '23-7-12.csv',
         '24-1-7.csv',
     ]
+DAILY_FILE = 'option-daily.csv'
 
-    daily_file = 'option-daily.csv'
 
-    hf_data_sep = [pd.read_csv(os.path.join(loc, file)) for file in hf_files]
+def data_cleaning(loc, hf_files, daily_file):
+    '''
+    Converts the high frequency spot and daily volatility data into pandas dataframes, then cleans the data for later curation.
+
+    Args:
+        loc (string): relative file path to data
+        hf_files (list of strings): high frequency data files
+        daily_file (string): daily option volatility data
+
+    Returns:
+        hf_data (pandas dataframe): cleaned hf data compatible with daily data
+        daily_file (pandas dataframe): cleaned daily data compatible with hf data
+
+    Raises:
+        General error: If there is an error with reading the .csv files.
+    '''
+    # .csv files into 2 dataframes: (1) hf_data, (2) daily_data
+    try:
+        hf_data_sep = [pd.read_csv(os.path.join(loc, file)) for file in hf_files]
+        daily_data = pd.read_csv(os.path.join(loc, daily_file))
+    except Exception as e:
+        print(f"An error occured: {e}")
+        hf_data_sep = []
+        daily_data = None
+    
+    # aligning the format of the dataframes
     hf_data = pd.concat(hf_data_sep, ignore_index=True)
+    daily_columns = ['timestamp', 'indexPrice', 'volExpiry', 'volATM', 'vol10C', 'vol10P', 'vol25C', 'vol25P']
+    daily_data = daily_data[daily_columns]
 
-    daily_data = pd.read_csv(os.path.join(loc, daily_file)).drop(["currency", "data", 'underlyingPrice'], axis='columns')
-
+    # converting to same time range
     hf_data['timestamp'] = pd.to_datetime(hf_data['timestamp'], unit='ms')
     daily_data['timestamp'] = pd.to_datetime(daily_data['timestamp'], unit='ms')
 
-    latest_date = daily_data.iloc[-1, 1]
+    latest_date = daily_data.iloc[-1, 0]
     hf_data = hf_data[hf_data['timestamp'] <= latest_date]
+
+    # rounding daily data timestamps to nearest minute
+    daily_data['timestamp'] = daily_data['timestamp'].dt.round('min')
 
     print(hf_data.tail())
     print(daily_data.tail())
 
     return hf_data, daily_data
-
-
-
 
 
 def plot(hf_data, daily_data):
@@ -73,7 +97,7 @@ def plot(hf_data, daily_data):
 
 
 def main():
-    hf, daily = data()
+    hf, daily = data_cleaning(LOC, HF_FILES, DAILY_FILE)
     
     # plot(hf, daily)
 
