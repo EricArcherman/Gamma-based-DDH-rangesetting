@@ -16,7 +16,7 @@ daily_file = 'option-interday.csv'
 hf_data_sep = [pd.read_csv(os.path.join(loc, file)) for file in hf_files]
 hf_data = pd.concat(hf_data_sep, ignore_index=True)
 
-daily_data = pd.read_csv(os.path.join(loc, daily_file))
+daily_data = pd.read_csv(os.path.join(loc, daily_file)).drop([]"currency", axis='columns')
 
 print("read csv files:")
 
@@ -35,10 +35,8 @@ print(daily_data.head())
 
 ##############################################
 
-fig, ax1 = plt.subplots(figsize=(14, 7))
-
 # Plot high-frequency data
-plt.figure(figsize=(15, 7))
+fig, ax1 = plt.subplots(figsize=(14, 7))
 
 # Plot indexPrice from high-frequency data
 plt.subplot(2, 1, 1)
