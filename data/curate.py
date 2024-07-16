@@ -64,6 +64,26 @@ def data_cleaning(loc, hf_files, daily_file):
 
     return hf_data, daily_data
 
+def mesh(hf_data, daily_data):
+    '''
+    Meshes together the cleaned data
+
+    Args:
+        hf_data (pandas dataframe): cleaned hf data compatible with daily data
+        daily_file (pandas dataframe): cleaned daily data compatible with hf data
+
+    Returns:
+        meshed_data (pandas dataframe): meshed hf and daily data
+    '''
+    daily_data = daily_data.drop('indexPrice', axis=1)
+    meshed_data = pd.merge_ordered(hf_data, daily_data, on='timestamp')
+
+    print(meshed_data.tail())
+
+    meshed_data.to_csv('meshed.csv')
+
+    return meshed_data
+
 
 def plot(hf_data, daily_data):
     # Plot high-frequency data
@@ -98,6 +118,8 @@ def plot(hf_data, daily_data):
 
 def main():
     hf, daily = data_cleaning(LOC, HF_FILES, DAILY_FILE)
+
+    meshed = mesh(hf, daily)
     
     # plot(hf, daily)
 
