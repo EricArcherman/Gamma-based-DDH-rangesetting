@@ -6,7 +6,10 @@ Date: 16 July 2024
 '''
 import os
 import pandas as pd
-import matplotlib.pyplot as plt
+import numpy as np
+from scipy.interpolate import CubicSpline
+import random
+from graphing import raw_data_plot, vol_plot
 
 LOC = 'data/data_raw/'
 
@@ -66,7 +69,7 @@ def data_cleaning(loc, hf_files, daily_file):
 
 def mesh(hf_data, daily_data):
     '''
-    Meshes together the cleaned data
+    Meshes together the cleaned data and interpolates missing values as follows: volExpiry w/ backfill. volATM, 10C, 10P, 25C, 25P w/ cubic spline interpolation, then add random noise.
 
     Args:
         hf_data (pandas dataframe): cleaned hf data compatible with daily data
@@ -78,52 +81,30 @@ def mesh(hf_data, daily_data):
     daily_data = daily_data.drop('indexPrice', axis=1)
     meshed_data = pd.merge_ordered(hf_data, daily_data, on='timestamp')
 
-    print(meshed_data.tail())
+    meshed_data['volExpiry'] = meshed_data['volExpiry'].bfill()
 
-    meshed_data.to_csv('meshed.csv')
+    x_range = list(range(len(meshed_data)))
+    for column in meshed_data.columns[-5:]:
+        curve = CubicSpline(np.where(~np.isnan(meshed_data[column]))[0], meshed_data[column][~np.isnan(meshed_data[column])])
+        meshed_data[column] = curve(x_range)
 
-    return meshed_data
+    pre_noise = meshed_data.copy()
 
+    for column in meshed_data.columns[-5:]:
+        noise = [random.uniform(-0.01, 0.01) for _ in range(len(meshed_data))]
+        meshed_data[column] = meshed_data[column] + noise
 
-def plot(hf_data, daily_data):
-    # Plot high-frequency data
-    fig, ax1 = plt.subplots(figsize=(14, 7))
+    meshed_data.to_csv(os.path.join('data', 'meshed.csv'), index=False)
 
-    # Plot indexPrice from high-frequency data
-    plt.subplot(2, 1, 1)
-    plt.plot(hf_data['timestamp'], hf_data['indexPrice'], label='HF Index Price', color='blue')
-    plt.plot(daily_data['timestamp'], daily_data['indexPrice'], label='Daily Index Price', color='red')
-    plt.title('High-Frequency Data')
-    plt.xlabel('Time')
-    plt.ylabel('Index Price')
-    plt.legend()
-
-    # Plot daily data
-    plt.subplot(2, 1, 2)
-    plt.plot(daily_data['timestamp'], daily_data['volATM'], label='Volatility ATM', color='purple')
-    plt.plot(daily_data['timestamp'], daily_data['vol10C'], label='Volatility 10C', color='orange')
-    plt.plot(daily_data['timestamp'], daily_data['vol10P'], label='Volatility 10P', color='pink')
-    plt.plot(daily_data['timestamp'], daily_data['vol25C'], label='Volatility 25C', color='brown')
-    plt.plot(daily_data['timestamp'], daily_data['vol25P'], label='Volatility 25P', color='grey')
-
-    plt.title('Daily Data')
-    plt.xlabel('Time')
-    plt.ylabel('Values')
-    plt.legend()
-
-    plt.tight_layout()
-    plt.show()
-
-
+    return pre_noise, meshed_data
 
 def main():
     hf, daily = data_cleaning(LOC, HF_FILES, DAILY_FILE)
 
-    meshed = mesh(hf, daily)
-    
-    # plot(hf, daily)
+    pre_noise, meshed_data = mesh(hf, daily)
 
-
+    # raw_data_plot(hf, daily)
+    vol_plot(daily, pre_noise, meshed_data)
 
 if __name__ == '__main__':
     main()
