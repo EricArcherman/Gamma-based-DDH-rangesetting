@@ -18,6 +18,7 @@ HF_FILES = [
         '23-1-7.csv',
         '23-7-12.csv',
         '24-1-7.csv',
+        '24-7.csv'
     ]
 DAILY_FILE = 'option-daily.csv'
 
@@ -40,12 +41,20 @@ def data_cleaning(loc, hf_files, daily_file):
     '''
     # .csv files into 2 dataframes: (1) hf_data, (2) daily_data
     try:
-        hf_data_sep = [pd.read_csv(os.path.join(loc, file)) for file in hf_files]
+        # hf data
+        hf_data_sep = []
+        for file in hf_files:
+            file_path = os.path.join(loc, file)
+            print(f"Reading file: {file_path}")
+            df = pd.read_csv(file_path)
+            hf_data_sep.append(df)
+
+        # daily data
+        print(f"Reading file: {os.path.join(loc, daily_file)}")
         daily_data = pd.read_csv(os.path.join(loc, daily_file))
     except Exception as e:
         print(f"An error occured: {e}")
-        hf_data_sep = []
-        daily_data = None
+        exit()
     
     # aligning the format of the dataframes
     hf_data = pd.concat(hf_data_sep, ignore_index=True)
@@ -91,7 +100,7 @@ def mesh(hf_data, daily_data):
     pre_noise = meshed_data.copy()
 
     for column in meshed_data.columns[-5:]:
-        noise = [random.uniform(-0.01, 0.01) for _ in range(len(meshed_data))]
+        noise = [random.uniform(-0.0025, 0.0025) for _ in range(len(meshed_data))]
         meshed_data[column] = meshed_data[column] + noise
 
     meshed_data.to_csv(os.path.join('data', 'meshed.csv'), index=False)
@@ -103,8 +112,9 @@ def main():
 
     pre_noise, meshed_data = mesh(hf, daily)
 
-    # raw_data_plot(hf, daily)
-    vol_plot(daily, pre_noise, meshed_data)
+    # the [:100] is for a close-up snapshot. For the whole graph, just delete the '[:100].'
+    # raw_data_plot(hf[:100], daily[:100])
+    vol_plot(daily, pre_noise[:100], meshed_data[:100])
 
 if __name__ == '__main__':
     main()
