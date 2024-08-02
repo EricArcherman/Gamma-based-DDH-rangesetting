@@ -103,7 +103,7 @@ def mesh(hf_data, daily_data):
         noise = [random.uniform(-0.0025, 0.0025) for _ in range(len(meshed_data))]
         meshed_data[column] = meshed_data[column] + noise
 
-    meshed_data.to_csv(os.path.join('data', 'meshed.csv'), index=False)
+    meshed_data.to_csv('meshed.csv', index=False) # meshed_data.to_csv(os.path.join('data', 'meshed.csv'), index=False)
 
     return pre_noise, meshed_data
 
